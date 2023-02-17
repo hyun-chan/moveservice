@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>차량별 정보</title>
+  </head>
+  <body>
+    <h1><a href="index.html">이동서비스 계획표</a></h1>
+    <h1>차량별 정보</h1>
+    <div>
+      <label for="carNumber">차량번호 선택:</label>
+      <select id="carNumber" name="carNumber"></select>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>차종</th>
+          <th>차량번호</th>
+          <th>성명</th>
+          <th>나이</th>
+          <th>주소</th>
+        </tr>
+      </thead>
+      <tbody id="info-table">
+      </tbody>
+    </table>
+  
+    <script>
+        let id = JSON.parse(localStorage.getItem('id')) || 0;
+
+function saveInfo() {
+  id++;
+  const info = {
+    name: document.getElementById('name').value,
+    age: document.getElementById('age').value,
+    address: document.getElementById('address').value,
+    carType: document.getElementById('car-type').value,
+    carNumber: document.getElementById('car-number').value,
+    id: id
+  };
+  localStorage.setItem(id, JSON.stringify(info));
+  localStorage.setItem('id', id);
+  alert('저장되었습니다.');
+}
+
+function getInfo() {
+  const infoList = [];
+  let maxId = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (/^\d+$/.test(key)) {
+      const id = parseInt(key, 10);
+      const info = JSON.parse(localStorage.getItem(key));
+      infoList.push(info);
+      if (id > maxId) {
+        maxId = id;
+      }
+    }
+  }
+  id = maxId;
+  return infoList;
+}
+
+// 저장된 정보를 불러오기
+const savedInfo = JSON.parse(localStorage.getItem('info')) || [];
+
+// 저장된 정보를 출력하는 함수
+let info;
+
+function showInfo(info) {
+    const tableBody = document.getElementById('info-table');
+    let tableRow = document.createElement('tr');
+    tableRow.innerHTML = `
+      <td>${info.id}</td>
+      <td>${info.carType}</td>
+      <td>${info.carNumber}</td>
+      <td>${info.name}</td>
+      <td>${info.age}</td>
+      <td>${info.address}</td>
+    `;
+    tableBody.appendChild(tableRow);
+    tableRow.onclick = () => showInfoByCarNumber(info.carNumber);
+    window.info = info;
+  }
+
+  function showSavedInfo() {
+  const infoList = getInfo().sort((a, b) => a.id - b.id);
+  const tableBody = document.getElementById('info-table');
+  tableBody.innerHTML = '';
+  if (infoList.length === 0) {
+    let tableRow = document.createElement('tr');
+    tableRow.innerHTML = `<td colspan="7">저장된 정보가 없습니다.</td>`;
+    tableBody.appendChild(tableRow);
+  } else {
+    infoList.forEach(info => showInfo(info));
+  }
+}
+  }
+  function deleteInfo(id) {
+    localStorage.removeItem(id);
+    const tableBody = document.getElementById('info-table');
+    tableBody.innerHTML = '';
+    const infoList = getInfo();
+    infoList.forEach(info => showInfo(info));
+  }
+  
+  function showInfo(info) {
+    const tableBody = document.getElementById('info-table');
+    const row = document.createElement('tr');
+  
+    const idCell = document.createElement('td');
+    idCell.textContent = info.id;
+  
+    const carTypeCell = document.createElement('td');
+    carTypeCell.textContent = info.carType;
+  
+    const carNumberCell = document.createElement('td');
+    carNumberCell.textContent = info.carNumber;
+  
+    const nameCell = document.createElement('td');
+    nameCell.textContent = info.name;
+  
+    const ageCell = document.createElement('td');
+    ageCell.textContent = info.age;
+  
+    const addressCell = document.createElement('td');
+    addressCell.textContent = info.address;
+  
+    const deleteButtonCell = document.createElement('td');
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = '삭제';
+    deleteButton.addEventListener('click', () => {
+      deleteInfo(info.id);
+    });
+    deleteButtonCell.appendChild(deleteButton);
+  
+    row.appendChild(idCell);
+    row.appendChild(carTypeCell);
+    row.appendChild(carNumberCell);
+    row.appendChild(nameCell);
+    row.appendChild(ageCell);
+    row.appendChild(addressCell);
+    
+  
+    tableBody.appendChild(row);
+  }
+  
+  function showInfoByCarNumber(carNumber) {
+    const infoList = getInfo().filter(info => info.carNumber === carNumber);
+    const tableBody = document.getElementById('info-table');
+    tableBody.innerHTML = '';
+    if (infoList.length === 0) {
+      let tableRow = document.createElement('tr');
+      tableRow.innerHTML = `<td colspan="7">일치하는 차량번호의 정보가 없습니다.</td>`;
+      tableBody.appendChild(tableRow);
+    } else {
+      infoList.forEach(info => showInfo(info));
+    }
+  }
+// 저장된 정보를 순서대로 출력
+savedInfo.forEach(info => showInfo(info));
+
+// 차량번호 별 그룹
+function groupByCarNumber(infoList) {
+  const group = {};
+  infoList.forEach(info => {
+    if (!group[info.carNumber]) {
+      group[info.carNumber] = [];
+    }
+    group[info.carNumber].push(info);
+  });
+  return group;
+}
+
+const infoList = getInfo();
+const group = groupByCarNumber(infoList);
+console.log(group);  // 예시: { "12가3456": [ {...}, {...} ], "34나5678": [ {...} ] }
+
+// select 요소 초기화
+const carNumberSelect = document.getElementById('carNumber');
+const carNumberList = Object.keys(group);
+carNumberList.forEach(carNumber => {
+  const option = document.createElement('option');
+  option.value = carNumber;
+  option.textContent = carNumber;
+  carNumberSelect.appendChild(option);
+});
+
+// select 요소 변경 시, 해당 차량번호의 정보를 출력
+carNumberSelect.addEventListener('change', () => {
+  const carNumber = carNumberSelect.value;
+  const tableBody = document.getElementById('info-table');
+  tableBody.innerHTML = '';
+  group[carNumber].forEach(info => showInfo(info));
+});
+
+// info-table 엘리먼트 가져오기
+const infoTable = document.querySelector('#info-table');
+
+// info-table의 모든 td 엘리먼트 가져오기
+const tds = infoTable.querySelectorAll('td');
+
+// td 엘리먼트에 클릭 이벤트 리스너 추가하기
+tds.forEach((td, index) => {
+  td.addEventListener('click', () => {
+    // 클릭한 td 엘리먼트의 텍스트 값 가져오기
+    const clickedText = td.textContent;
+
+    // 모든 td 엘리먼트의 텍스트 값 가져오기
+    const tdTexts = Array.from(tds).map(td => td.textContent);
+
+    // 텍스트 값으로 정렬한 인덱스 배열 만들기
+    const sortedIndex = tdTexts
+      .map((text, index) => [text, index])
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([text, index]) => index);
+
+    // 클릭한 td 엘리먼트의 인덱스 가져오기
+    const clickedIndex = sortedIndex.indexOf(index);
+
+    // info-table의 순서를 정렬하기
+    const rows = Array.from(infoTable.rows);
+    const newRows = rows.map(row => Array.from(row.cells));
+    newRows.sort((a, b) => {
+      const aText = a[clickedIndex].textContent;
+      const bText = b[clickedIndex].textContent;
+      return aText.localeCompare(bText);
+    });
+
+    infoTable.innerHTML = '';
+    newRows.forEach(newRow => {
+      const tr = document.createElement('tr');
+      newRow.forEach(newCell => {
+        tr.appendChild(newCell);
+      });
+      infoTable.appendChild(tr);
+    });
+  });
+});
+
+    </script>
+  </body>
+</html>

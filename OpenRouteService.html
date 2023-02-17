@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>OpenRouteService API 예제</title>
+  <style>
+    #map {
+      height: 500px;
+    }
+  </style>
+</head>
+<body>
+  <h1>출발지와 도착지 거리와 시간 구하기</h1>
+  <div>
+    <label for="start">출발지</label>
+    <input type="text" id="start" placeholder="출발지 입력">
+    <br>
+    <label for="destination">도착지</label>
+    <input type="text" id="destination" placeholder="도착지 입력">
+    <br>
+    <button type="button" onclick="getRoute()">거리와 시간 구하기</button>
+  </div>
+  <div id="route-info">
+    <h2>결과</h2>
+    <p id="distance"></p>
+    <p id="duration"></p>
+  </div>
+  <div id="map"></div>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/openlayers@5.3.0/dist/ol.js"></script>
+  <script>
+    const apiKey = '5b3ce3597851110001cf6248b0fae02ca8314e68af0605365c0bdef2';
+
+    const startInput = document.getElementById('start');
+    const destinationInput = document.getElementById('destination');
+    const distance = document.getElementById('distance');
+    const duration = document.getElementById('duration');
+
+    // openlayers map 설정
+    const map = new ol.Map({
+      target: 'map',
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM()
+        })
+      ],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([127.024612, 37.532600]),
+        zoom: 12
+      })
+    });
+
+    // 출발지와 도착지를 이용하여 openrouteservice API에 요청
+    function getRoute() {
+      const start = startInput.value;
+      const destination = destinationInput.value;
+      const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${start}&end=${destination}`;
+
+      axios.get(url)
+        .then(response => {
+          const route = response.data.features[0];
+          const distanceMeters = route.properties.segments[0].distance;
+          const durationSeconds = route.properties.segments[0].duration;
+          const distanceKm = (distanceMeters / 1000).toFixed(1);
+          const durationMin = (durationSeconds / 60).toFixed(0);
+
+          distance.innerHTML = `거리: ${distanceKm} km`;
+        duration.innerHTML = `시간: ${durationMin} 분`;
+        duration.innerHTML = `예상 소요 시간: ${durationMin}분`;
+          const coords = route.geometry.coordinates;
+          const feature = new ol.Feature({
+            type: 'route',
+            geometry: new ol.geom.LineString(coords)
+          });
+
+          const vectorSource = new ol.source.Vector({
+            features: [feature]
+          });
+
+          const vectorLayer = new ol.layer.Vector({
+            source: vectorSource
+          });
+
+          map.addLayer(vectorLayer);
+
+          const extent = vectorSource.getExtent();
+          map.getView().fit(extent, map.getSize());
+        })
+        .catch(error => {
+          console.error(error);
+        });
+    }
+  </script>
+</body>
+</html>
